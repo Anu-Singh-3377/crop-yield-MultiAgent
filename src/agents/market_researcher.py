@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel
+from typing import Dict, List, Literal
+from pydantic import BaseModel, Field
 
 class MarketTrend(BaseModel):
     crop: str
@@ -12,12 +11,48 @@ class MarketTrend(BaseModel):
     price_trend: str
     confidence_score: float
 
+
+class MarketResearchInput(BaseModel):
+    crops: List[str] = Field(min_length=1)
+    region: str = Field(min_length=1)
+    farm_size: float = Field(gt=0)
+
+
+class MarketCropReport(BaseModel):
+    crop: str
+    market_trend: MarketTrend
+    profitability: Dict[str, float]
+    recommendation_score: float
+
+
+class MarketResearchOutput(BaseModel):
+    agent_name: Literal["market_researcher"] = "market_researcher"
+    status: Literal["completed"] = "completed"
+    region: str
+    recommendations: List[MarketCropReport]
+
+
 class MarketResearcher:
     def __init__(self, market_data: pd.DataFrame):
         """Initialize the Market Researcher agent with historical market data."""
         self.market_data = market_data
         self.demand_levels = ['Low', 'Medium', 'High']
         self.price_trends = ['Decreasing', 'Stable', 'Increasing']
+
+    def run(self, request: MarketResearchInput) -> MarketResearchOutput:
+        """Run market analysis through the structured AgroAI agent interface."""
+        report = self.generate_market_report(
+            crops=request.crops,
+            region=request.region,
+            farm_size=request.farm_size,
+        )
+        return MarketResearchOutput(
+            region=request.region,
+            recommendations=[
+                MarketCropReport.model_validate(item)
+                for item in report
+            ],
+        )
         
     def analyze_price_trends(self, crop: str, region: str) -> Dict:
         """Analyze historical price trends for a specific crop in a region."""

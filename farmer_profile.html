@@ -57,10 +57,136 @@
             border-radius: 4px;
             margin-top: 20px;
         }
+        body {
+            max-width: 1120px;
+            padding: 24px;
+            background: #f3f7f1;
+            color: #23352a;
+        }
+        .container {
+            padding: clamp(20px, 4vw, 40px);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(27, 55, 37, 0.08);
+        }
+        h1, h2, h3 { color: #245c39; }
+        .page-nav {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        .page-nav a {
+            color: #21613b;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .section-intro, .field-hint, .muted {
+            color: #627268;
+            line-height: 1.55;
+        }
+        .dashboard {
+            margin-top: 42px;
+            padding-top: 30px;
+            border-top: 1px solid #e1e9e2;
+        }
+        .dashboard-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+        .dashboard-header h2 { margin: 0 0 8px; }
+        .dashboard-grid, .results-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .dashboard-card, .result-card {
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid #e2eae3;
+            border-radius: 12px;
+            background: #fff;
+        }
+        .dashboard-card h3, .result-card h3 { margin: 0 0 12px; }
+        .dashboard-card .form-group { margin-bottom: 13px; }
+        .dashboard-card input, .dashboard-card select {
+            min-height: 42px;
+            border-color: #cbd8ce;
+        }
+        .dashboard-card input:focus, .dashboard-card select:focus {
+            outline: 3px solid rgba(67, 140, 87, 0.18);
+            border-color: #438c57;
+        }
+        .dashboard-card input[type="file"] { padding: 8px; }
+        .field-hint { display: block; margin-top: 5px; font-size: 13px; }
+        .inline-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .image-preview {
+            display: none;
+            max-width: 100%;
+            max-height: 220px;
+            margin-top: 12px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+        .primary-action {
+            max-width: 320px;
+            margin-top: 20px;
+            background: #21613b;
+        }
+        .primary-action:hover { background: #174a2c; }
+        .primary-action:disabled { cursor: wait; opacity: 0.7; }
+        .analysis-status, .analysis-error {
+            min-height: 24px;
+            margin: 14px 0;
+            line-height: 1.5;
+        }
+        .analysis-error { color: #a12626; }
+        .results-section { margin-top: 26px; }
+        .results-section h2 { margin-bottom: 14px; }
+        .result-card p { margin: 7px 0; line-height: 1.5; overflow-wrap: anywhere; }
+        .result-card ul { margin: 8px 0 0; padding-left: 20px; }
+        .result-card li { margin: 7px 0; line-height: 1.45; }
+        .result-card .empty-result { color: #68766d; font-style: italic; }
+        .agent-status-list { display: grid; gap: 10px; }
+        .agent-status {
+            display: grid;
+            grid-template-columns: minmax(120px, 0.7fr) minmax(100px, auto) 2fr;
+            align-items: start;
+            gap: 12px;
+            padding: 11px 12px;
+            border-radius: 8px;
+            background: #f6f8f6;
+        }
+        .status-badge {
+            width: fit-content;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .status-success { color: #17613a; background: #e4f4e9; }
+        .status-failed { color: #9e2525; background: #fdeaea; }
+        .status-skipped { color: #685c25; background: #f7f1d9; }
+        @media (max-width: 720px) {
+            body { padding: 12px; }
+            .dashboard-grid, .results-grid { grid-template-columns: 1fr; }
+            .dashboard-header { display: block; }
+            .agent-status { grid-template-columns: 1fr auto; }
+            .agent-status .agent-detail { grid-column: 1 / -1; }
+            .primary-action { max-width: none; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <nav class="page-nav" aria-label="Page navigation">
+            <a href="#agro-dashboard">Go to AgroAI dashboard ↓</a>
+        </nav>
         <h1>Create Farmer Profile</h1>
         <form id="farmerProfileForm">
             <div class="form-group">
@@ -75,7 +201,7 @@
 
             <div class="form-group">
                 <label for="farm_size">Farm Size (in acres):</label>
-                <input type="number" id="farm_size" name="farm_size" step="0.1" required>
+                <input type="number" id="farm_size" name="farm_size" min="0.1" step="0.1" required>
             </div>
 
             <div class="form-group">
@@ -106,13 +232,166 @@
 
             <div class="form-group">
                 <label for="budget">Budget (in Rs.):</label>
-                <input type="number" id="budget" name="budget" required>
+                <input type="number" id="budget" name="budget" min="0" required>
             </div>
 
             <button type="submit" id="submit-button">Create Profile</button>
         </form>
 
         <div id="result"></div>
+
+        <section class="dashboard" id="agro-dashboard" aria-labelledby="dashboard-title">
+            <div class="dashboard-header">
+                <div>
+                    <h2 id="dashboard-title">AgroAI Farm Dashboard</h2>
+                    <p class="section-intro">
+                        Enter your farm details above, add any optional conditions below, and run an assessment.
+                        Results and agent status come from the AgroAI backend; unavailable model results are shown as unavailable.
+                    </p>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <section class="dashboard-card" aria-labelledby="crop-selection-title">
+                    <h3 id="crop-selection-title">Crop Selection</h3>
+                    <div class="form-group">
+                        <label for="analysis_crop">Main crop to assess</label>
+                        <input id="analysis_crop" list="crop-options" placeholder="e.g., Wheat">
+                        <datalist id="crop-options">
+                            <option value="Rice"></option>
+                            <option value="Wheat"></option>
+                            <option value="Corn"></option>
+                            <option value="Soybeans"></option>
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="market_crops">Crops for market analysis</label>
+                        <input id="market_crops" placeholder="e.g., wheat, corn">
+                        <span class="field-hint">Separate crop names with commas. If blank, the selected main crop is used.</span>
+                    </div>
+                </section>
+
+                <section class="dashboard-card" aria-labelledby="soil-information-title">
+                    <h3 id="soil-information-title">Soil Information</h3>
+                    <p class="field-hint">Soil type and water availability are taken from Farm Profile above.</p>
+                    <div class="inline-fields">
+                        <div class="form-group">
+                            <label for="soil_ph">Soil pH (optional)</label>
+                            <input id="soil_ph" type="number" min="0" max="14" step="0.1" placeholder="e.g., 6.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="soil_moisture">Soil moisture (optional)</label>
+                            <input id="soil_moisture" type="number" min="0" step="0.1" placeholder="Measured value">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="dashboard-card" aria-labelledby="weather-location-title">
+                    <h3 id="weather-location-title">Location &amp; Weather</h3>
+                    <p class="field-hint">Location is taken from Farm Profile. Coordinates can be supplied instead or to refine location.</p>
+                    <div class="inline-fields">
+                        <div class="form-group">
+                            <label for="latitude">Latitude (optional)</label>
+                            <input id="latitude" type="number" min="-90" max="90" step="any" placeholder="e.g., 12.97">
+                        </div>
+                        <div class="form-group">
+                            <label for="longitude">Longitude (optional)</label>
+                            <input id="longitude" type="number" min="-180" max="180" step="any" placeholder="e.g., 77.59">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="dashboard-card" aria-labelledby="disease-upload-title">
+                    <h3 id="disease-upload-title">Crop Disease Image</h3>
+                    <div class="form-group">
+                        <label for="disease-image">Upload a clear crop image (optional)</label>
+                        <input id="disease-image" type="file" accept="image/*">
+                        <span class="field-hint">A disease result is only shown when an image is submitted and the trained model is available.</span>
+                        <img id="image-preview" class="image-preview" alt="Selected crop image preview">
+                    </div>
+                </section>
+
+                <section class="dashboard-card" aria-labelledby="yield-inputs-title">
+                    <h3 id="yield-inputs-title">Yield Prediction Inputs</h3>
+                    <p class="field-hint">Optional values supplied to the yield model. They are separate from the weather forecast.</p>
+                    <div class="inline-fields">
+                        <div class="form-group">
+                            <label for="yield_temperature">Temperature °C</label>
+                            <input id="yield_temperature" type="number" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="yield_rainfall">Rainfall (mm)</label>
+                            <input id="yield_rainfall" type="number" min="0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="fertilizer_usage">Fertilizer used (kg)</label>
+                            <input id="fertilizer_usage" type="number" min="0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="pesticide_usage">Pesticide used (kg)</label>
+                            <input id="pesticide_usage" type="number" min="0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="historical_yield">Historical yield (tons)</label>
+                            <input id="historical_yield" type="number" min="0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="sustainability_score">Sustainability score (0-100)</label>
+                            <input id="sustainability_score" type="number" min="0" max="100" step="1">
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <button type="button" class="primary-action" id="analyze-farm-button">
+                Run AgroAI Farm Assessment
+            </button>
+            <p id="analysis-status" class="analysis-status" role="status" aria-live="polite"></p>
+            <p id="analysis-error" class="analysis-error" role="alert"></p>
+
+            <div id="analysis-results" hidden>
+                <section class="results-section" aria-labelledby="assessment-results-title">
+                    <h2 id="assessment-results-title">Assessment Results</h2>
+                    <div class="results-grid">
+                        <article class="result-card" id="crop-result">
+                            <h3>Farm Profile &amp; Crop Assessment</h3>
+                            <div class="result-content"></div>
+                        </article>
+                        <article class="result-card" id="weather-result">
+                            <h3>Weather &amp; Agricultural Risks</h3>
+                            <div class="result-content"></div>
+                        </article>
+                        <article class="result-card" id="disease-result">
+                            <h3>Disease Detection</h3>
+                            <div class="result-content"></div>
+                        </article>
+                        <article class="result-card" id="yield-result">
+                            <h3>Yield Prediction</h3>
+                            <div class="result-content"></div>
+                        </article>
+                        <article class="result-card" id="market-result">
+                            <h3>Market Analysis</h3>
+                            <div class="result-content"></div>
+                        </article>
+                        <article class="result-card" id="sustainability-result">
+                            <h3>Sustainability Assessment</h3>
+                            <div class="result-content"></div>
+                        </article>
+                        <article class="result-card" id="advisory-result">
+                            <h3>Local Advisory</h3>
+                            <div class="result-content"></div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="results-section" aria-labelledby="agent-status-title">
+                    <h2 id="agent-status-title">Agent Execution Status</h2>
+                    <article class="result-card">
+                        <div id="agent-status-list" class="agent-status-list"></div>
+                    </article>
+                </section>
+            </div>
+        </section>
     </div>
 
     <script>
@@ -175,6 +454,324 @@
                 submitButton.innerHTML = 'Create Profile';
             }
         });
+    </script>
+    <script>
+        (() => {
+            const profileForm = document.getElementById('farmerProfileForm');
+            const analyzeButton = document.getElementById('analyze-farm-button');
+            const statusElement = document.getElementById('analysis-status');
+            const errorElement = document.getElementById('analysis-error');
+            const resultsElement = document.getElementById('analysis-results');
+            const imageInput = document.getElementById('disease-image');
+            const imagePreview = document.getElementById('image-preview');
+            let previewUrl = null;
+
+            const valueOf = (id) => document.getElementById(id).value.trim();
+            const numberOf = (id) => {
+                const value = valueOf(id);
+                return value === '' ? undefined : Number(value);
+            };
+            const splitCrops = (value) => value
+                .split(',')
+                .map((crop) => crop.trim())
+                .filter(Boolean);
+            const escapeHtml = (value) => String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+            const showValue = (value, unit = '') => {
+                if (value === null || value === undefined || value === '') return 'Not provided';
+                return `${escapeHtml(value)}${unit ? ` ${escapeHtml(unit)}` : ''}`;
+            };
+            const emptyResult = (message = 'No result was returned by the backend.') =>
+                `<p class="empty-result">${escapeHtml(message)}</p>`;
+            const setResult = (id, html) => {
+                document.querySelector(`#${id} .result-content`).innerHTML = html;
+            };
+            const listHtml = (items, renderItem) => {
+                if (!items || items.length === 0) return emptyResult();
+                return `<ul>${items.map((item) => `<li>${renderItem(item)}</li>`).join('')}</ul>`;
+            };
+            const formatObject = (value) => {
+                if (!value || typeof value !== 'object') return showValue(value);
+                const entries = Object.entries(value);
+                if (entries.length === 0) return 'Not available';
+                return entries.map(([key, item]) =>
+                    `<span><b>${escapeHtml(key.replaceAll('_', ' '))}:</b> ${showValue(item)}</span>`
+                ).join(' &nbsp; ');
+            };
+            const readImageAsBase64 = (file) => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = String(reader.result || '');
+                    const comma = result.indexOf(',');
+                    resolve(comma < 0 ? '' : result.slice(comma + 1));
+                };
+                reader.onerror = () => reject(new Error('The selected image could not be read.'));
+                reader.readAsDataURL(file);
+            });
+
+            imageInput.addEventListener('change', () => {
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+                const file = imageInput.files && imageInput.files[0];
+                if (!file) {
+                    imagePreview.removeAttribute('src');
+                    imagePreview.style.display = 'none';
+                    return;
+                }
+                previewUrl = URL.createObjectURL(file);
+                imagePreview.src = previewUrl;
+                imagePreview.style.display = 'block';
+            });
+
+            function renderResults(data) {
+                const profile = data.farmer_profile;
+                const soil = data.soil || {};
+                const candidates = data.sustainability_assessment || [];
+                const candidateHtml = listHtml(candidates, (candidate) =>
+                    `<b>${showValue(candidate.crop)}</b>` +
+                    `<br>Sustainability score: ${showValue(candidate.sustainability_score)}` +
+                    ` &nbsp; Soil compatibility: ${showValue(candidate.soil_compatibility)}` +
+                    ` &nbsp; Water requirement: ${showValue(candidate.water_requirement, 'm³')}` +
+                    (candidate.sustainability_metrics && Object.keys(candidate.sustainability_metrics).length
+                        ? `<br>Metrics: ${formatObject(candidate.sustainability_metrics)}`
+                        : '')
+                );
+                setResult('crop-result',
+                    (profile
+                        ? `<p><b>Farmer:</b> ${showValue(profile.name)}</p>` +
+                          `<p><b>Location:</b> ${showValue(profile.location)}</p>` +
+                          `<p><b>Farm size:</b> ${showValue(profile.farm_size, 'acres')}</p>` +
+                          `<p><b>Soil:</b> ${showValue(profile.soil_type)} · <b>Water:</b> ${showValue(profile.water_availability)}</p>` +
+                          `<p><b>Submitted soil pH:</b> ${showValue(soil.soil_ph)} · ` +
+                          `<b>Soil moisture:</b> ${showValue(soil.soil_moisture)}</p>` +
+                          `<p><b>Budget:</b> ${showValue(profile.budget)}</p>`
+                        : '') +
+                    `<p><b>Selected crop:</b> ${showValue(data.crop)}</p>` +
+                    `<h4>Farmer Advisor candidates</h4>${candidateHtml}`
+                );
+
+                const weather = data.weather;
+                const forecast = weather && weather.forecast
+                    ? listHtml(weather.forecast, (day) =>
+                        `<b>${showValue(day.date)}</b>: High ${showValue(day.temperature_max, '°C')}, ` +
+                        `low ${showValue(day.temperature_min, '°C')}, rainfall ${showValue(day.rainfall, 'mm')}, ` +
+                        `rain chance ${showValue(day.precipitation_probability, '%')}`
+                    )
+                    : emptyResult('No forecast was returned by the Weather Agent.');
+                setResult('weather-result', weather
+                    ? `<p><b>Location:</b> ${showValue(weather.location)}</p>` +
+                      `<p><b>Current temperature:</b> ${showValue(weather.temperature, '°C')}</p>` +
+                      `<p><b>Humidity:</b> ${showValue(weather.humidity, '%')} · <b>Rainfall:</b> ${showValue(weather.rainfall, 'mm')}</p>` +
+                      `<h4>Forecast</h4>${forecast}` +
+                      `<h4>Agricultural risks</h4>${listHtml(weather.agricultural_risks, (risk) =>
+                          `<b>${showValue(risk.type)}</b> (${showValue(risk.severity)}): ${showValue(risk.description)}`
+                      )}`
+                    : emptyResult('No weather result was returned. Check the Agent Execution Status for details.')
+                );
+
+                const disease = data.disease;
+                setResult('disease-result', disease
+                    ? `<p><b>Crop:</b> ${showValue(disease.crop)}</p>` +
+                      `<p><b>Classification:</b> ${showValue(disease.disease)}</p>` +
+                      `<p><b>Confidence:</b> ${showValue(disease.confidence)}</p>` +
+                      `<p><b>Risk level:</b> ${showValue(disease.risk_level)}</p>` +
+                      `<p class="muted">This is a model classification, not a confirmed diagnosis.</p>`
+                    : emptyResult('No disease classification was returned. Upload an image and ensure a trained disease model is installed.')
+                );
+
+                const yieldPrediction = data.yield_prediction;
+                setResult('yield-result', yieldPrediction
+                    ? `<p><b>Crop:</b> ${showValue(yieldPrediction.crop)}</p>` +
+                      `<p><b>Predicted yield:</b> ${showValue(yieldPrediction.predicted_yield, yieldPrediction.unit)}</p>` +
+                      `<p><b>Prediction range:</b> ${formatObject(yieldPrediction.confidence_or_range)}</p>` +
+                      `<p><b>Model version:</b> ${showValue(yieldPrediction.model_version)}</p>` +
+                      `<h4>Important factors</h4>${listHtml(yieldPrediction.important_factors, (factor) =>
+                          `${showValue(factor.factor)} (impact ${showValue(factor.impact)})`
+                      )}`
+                    : emptyResult('No yield prediction was returned. Check the Agent Execution Status and model availability.')
+                );
+
+                const market = data.market_analysis;
+                setResult('market-result', market
+                    ? `<p><b>Region:</b> ${showValue(market.region)}</p>` +
+                      listHtml(market.recommendations, (item) =>
+                        `<b>${showValue(item.crop)}</b><br>` +
+                        `Current price: ${showValue(item.market_trend.current_price)} · ` +
+                        `Predicted price: ${showValue(item.market_trend.predicted_price)} · ` +
+                        `Demand: ${showValue(item.market_trend.demand_level)} · ` +
+                        `Trend: ${showValue(item.market_trend.price_trend)} · ` +
+                        `Confidence: ${showValue(item.market_trend.confidence_score)}<br>` +
+                        `Recommendation score: ${showValue(item.recommendation_score)} · ` +
+                        `Profitability: ${formatObject(item.profitability)}`
+                      )
+                    : emptyResult('No market analysis was returned. Check the Agent Execution Status.')
+                );
+
+                const advisory = data.final_advisory;
+                setResult('sustainability-result',
+                    `<h4>Crop assessments</h4>${candidateHtml}` +
+                    `<h4>Sustainable actions</h4>${advisory
+                        ? listHtml(advisory.sustainability_actions, (action) =>
+                            `<b>${showValue(action.action)}</b> (${showValue(action.priority)} priority): ` +
+                            `${showValue(action.rationale)}`
+                        )
+                        : emptyResult('No sustainability actions were returned by Local Advisory.')}`
+                );
+                setResult('advisory-result', advisory
+                    ? `<h4>Recommended actions</h4>${listHtml(advisory.recommended_actions, (action) =>
+                        `<b>${showValue(action.action)}</b> (${showValue(action.priority)} priority): ` +
+                        `${showValue(action.rationale)}` +
+                        (action.evidence && action.evidence.length
+                            ? `<br><span class="muted">Based on: ${action.evidence.map(escapeHtml).join(', ')}</span>`
+                            : '')
+                    )}` +
+                    `<h4>Warnings</h4>${listHtml(advisory.warnings, escapeHtml)}`
+                    : emptyResult('No local advisory was returned. Check the Agent Execution Status.')
+                );
+
+                renderAgentStatus(data);
+                resultsElement.hidden = false;
+            }
+
+            function renderAgentStatus(data) {
+                const labels = {
+                    farmer_advisor: 'Farmer Advisor',
+                    market_researcher: 'Market Researcher',
+                    weather: 'Weather Agent',
+                    disease: 'Disease Detection',
+                    yield_prediction: 'Yield Prediction',
+                    local_advisory: 'Local Advisory',
+                    input: 'Request validation',
+                    orchestration: 'Result validation'
+                };
+                const failures = new Map((data.agent_errors || []).map((error) => [error.agent, error]));
+                const statuses = new Map();
+                (data.executed_agents || []).forEach((agent) => statuses.set(agent, 'executed'));
+                Object.keys(data.skipped_agents || {}).forEach((agent) => statuses.set(agent, 'skipped'));
+                failures.forEach((error, agent) => statuses.set(agent, 'failed'));
+
+                const entries = Array.from(statuses.entries());
+                document.getElementById('agent-status-list').innerHTML = entries.length
+                    ? entries.map(([agent, state]) => {
+                        const error = failures.get(agent);
+                        const skippedReason = data.skipped_agents && data.skipped_agents[agent];
+                        const statusText = state === 'failed' ? 'Failed' : state === 'skipped' ? 'Skipped' : 'Succeeded';
+                        const detail = error
+                            ? `${error.error_type}: ${error.message}`
+                            : skippedReason || 'Agent completed and returned control to the workflow.';
+                        return `<div class="agent-status">` +
+                            `<b>${escapeHtml(labels[agent] || agent)}</b>` +
+                            `<span class="status-badge status-${state === 'executed' ? 'success' : state}">${statusText}</span>` +
+                            `<span class="agent-detail">${escapeHtml(detail)}</span>` +
+                            `</div>`;
+                    }).join('')
+                    : emptyResult('The backend did not return agent execution status.');
+            }
+
+            analyzeButton.addEventListener('click', async () => {
+                errorElement.textContent = '';
+                statusElement.textContent = '';
+                if (!profileForm.reportValidity()) return;
+
+                const numericInputs = document.querySelectorAll('#agro-dashboard input[type="number"]');
+                for (const input of numericInputs) {
+                    if (!input.checkValidity()) {
+                        input.reportValidity();
+                        return;
+                    }
+                }
+
+                const latitude = numberOf('latitude');
+                const longitude = numberOf('longitude');
+                if ((latitude === undefined) !== (longitude === undefined)) {
+                    errorElement.textContent = 'Enter both latitude and longitude, or leave both blank.';
+                    return;
+                }
+
+                const preferredCrops = splitCrops(valueOf('preferred_crops'));
+                const crop = valueOf('analysis_crop') || preferredCrops[0] || undefined;
+                const marketCrops = splitCrops(valueOf('market_crops'));
+                const profileData = {
+                    name: valueOf('name'),
+                    location: valueOf('location'),
+                    farm_size: Number(valueOf('farm_size')),
+                    soil_type: valueOf('soil_type'),
+                    water_availability: valueOf('water_availability'),
+                    preferred_crops: preferredCrops.length ? preferredCrops : (crop ? [crop] : null),
+                    budget: Number(valueOf('budget'))
+                };
+                const payload = {
+                    intent: 'farm_assessment',
+                    farmer_profile: profileData,
+                    crop,
+                    market_crops: marketCrops.length ? marketCrops : (crop ? [crop] : []),
+                    location: profileData.location,
+                    farm_size: profileData.farm_size,
+                    latitude,
+                    longitude,
+                    soil: {
+                        soil_type: profileData.soil_type,
+                        soil_ph: numberOf('soil_ph'),
+                        soil_moisture: numberOf('soil_moisture'),
+                        water_availability: profileData.water_availability
+                    },
+                    temperature_c: numberOf('yield_temperature'),
+                    rainfall_mm: numberOf('yield_rainfall'),
+                    fertilizer_usage_kg: numberOf('fertilizer_usage'),
+                    pesticide_usage_kg: numberOf('pesticide_usage'),
+                    historical_yield: numberOf('historical_yield'),
+                    sustainability_score: numberOf('sustainability_score'),
+                    image_crop: crop
+                };
+
+                try {
+                    analyzeButton.disabled = true;
+                    analyzeButton.textContent = 'Preparing assessment...';
+                    analyzeButton.setAttribute('aria-busy', 'true');
+                    resultsElement.hidden = true;
+                    statusElement.textContent = 'Preparing your farm assessment.';
+
+                    const image = imageInput.files && imageInput.files[0];
+                    if (image) payload.image_base64 = await readImageAsBase64(image);
+                    analyzeButton.textContent = 'Analyzing your farm...';
+                    statusElement.textContent = 'Contacting AgroAI agents. This may take a little while.';
+
+                    const response = await fetch('/api/agro/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const responseText = await response.text();
+                    let data = {};
+                    try {
+                        data = responseText ? JSON.parse(responseText) : {};
+                    } catch {
+                        data = { detail: responseText };
+                    }
+                    if (!response.ok) {
+                        const detail = typeof data.detail === 'string'
+                            ? data.detail
+                            : JSON.stringify(data.detail || data);
+                        throw new Error(detail || 'The farm assessment request failed.');
+                    }
+                    renderResults(data);
+                    statusElement.textContent = data.agent_errors && data.agent_errors.length
+                        ? 'Assessment received. Some agents reported errors; review Agent Execution Status.'
+                        : 'Assessment complete. Results below were returned by the AgroAI backend.';
+                } catch (error) {
+                    errorElement.textContent = error.message || 'Unable to complete the assessment. Please try again.';
+                    statusElement.textContent = '';
+                } finally {
+                    analyzeButton.disabled = false;
+                    analyzeButton.textContent = 'Run AgroAI Farm Assessment';
+                    analyzeButton.removeAttribute('aria-busy');
+                }
+            });
+        })();
     </script>
 </body>
 </html> 

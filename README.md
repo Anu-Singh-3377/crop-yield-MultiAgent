@@ -63,6 +63,29 @@ python scripts/setup_database.py
 python main.py
 ```
 
+### React dashboard
+
+The React/Vite dashboard lives in `frontend/`. Start the FastAPI backend first, then run the frontend in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+By default, Vite proxies `/api` requests to `http://127.0.0.1:8000`. To use another backend address, copy `frontend/.env.example` to `frontend/.env` and set `AGROAI_BACKEND_URL`.
+
+To serve the production dashboard from FastAPI, build it before starting the backend:
+
+```bash
+cd frontend
+npm run build
+cd ..
+python main.py
+```
+
+The Vite build is served at `/` when present; otherwise the existing `farmer_profile.html` remains available. The current backend does not provide persisted AgroAI run history, so the dashboard does not display fabricated history.
+
 ### 🌐 API Documentation
 
 #### Endpoints:

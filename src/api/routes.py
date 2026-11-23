@@ -1,16 +1,44 @@
+import base64
+import binascii
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 import pandas as pd
 import os
+from pydantic import Field
 
 from ..database.database import get_db
 from ..database.models import Farmer, Crop, Recommendation, MarketData
 from ..agents.farmer_advisor import FarmerAdvisor, FarmerProfile
 from ..agents.market_researcher import MarketResearcher
+from ..agroai.agents.yield_prediction import (
+    YieldPredictionAgent,
+    YieldPredictionRequest,
+    YieldPredictionResponse,
+)
+from ..agents.disease_agent import (
+    DiseaseAgent,
+    DiseasePredictionResponse,
+)
+from fastapi import UploadFile, File
+from ..agents.weather_agent import (
+    WeatherAgent,
+    WeatherAPIError,
+    WeatherResponse,
+)
+from ..agroai.orchestration import (
+    AgroAIOrchestrator,
+    AgroAIRequest,
+    AgroAIResponse,
+)
 
 router = APIRouter()
+agroai_orchestrator = AgroAIOrchestrator()
+
+
+class AgroAnalysisRequest(AgroAIRequest):
+    image_base64: Optional[str] = Field(default=None, exclude=True)
 
 # Load data (this would be replaced with actual data loading)
 try:
@@ -25,6 +53,78 @@ except FileNotFoundError:
 # Initialize agents
 farmer_advisor = FarmerAdvisor(farmer_data)
 market_researcher = MarketResearcher(market_data)
+yield_prediction_agent = YieldPredictionAgent
+
+
+@router.post("/agro/analyze", response_model=AgroAIResponse)
+async def analyze_agro(request: AgroAnalysisRequest):
+    """Run the requested AgroAI agents and return their structured results."""
+    payload = request.model_dump()
+    if request.image_base64 is not None:
+        if request.image is not None:
+            raise HTTPException(
+                status_code=422,
+                detail="Provide either image or image_base64, not both.",
+            )
+        try:
+            payload["image"] = base64.b64decode(
+                request.image_base64,
+                validate=True,
+            )
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="image_base64 must contain valid Base64 data.",
+            ) from exc
+
+    return await agroai_orchestrator.ainvoke(payload)
+
+
+@router.get("/weather", response_model=WeatherResponse)
+async def get_weather(
+    location: Optional[str] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+):
+    """Return normalized current weather and agricultural risks."""
+    try:
+        return await WeatherAgent().get_weather(
+            location=location,
+            latitude=latitude,
+            longitude=longitude,
+        )
+    except WeatherAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+@router.post("/yield/predict", response_model=YieldPredictionResponse)
+async def predict_yield(request: YieldPredictionRequest):
+    """Predict crop yield using the trained XGBoost yield model."""
+    try:
+        agent = yield_prediction_agent()
+        return agent.predict(request)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+@router.post("/disease/detect", response_model=DiseasePredictionResponse)
+async def detect_disease(
+    image: UploadFile = File(...),
+    crop: Optional[str] = None,
+):
+    """Run crop disease classification with the independent disease agent."""
+    try:
+        image_bytes = await image.read()
+        agent = DiseaseAgent()
+        return agent.predict(image_bytes, crop_hint=crop)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 @router.post("/farmers/", response_model=dict)
 async def create_farmer(

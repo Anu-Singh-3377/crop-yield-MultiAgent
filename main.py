@@ -6,15 +6,22 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+from pathlib import Path
 from datetime import datetime
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from src.api.routes import router as api_router
 
 # Initialize FastAPI app
 app = FastAPI(title="Sustainable Farming AI System")
 app.include_router(api_router, prefix="/api")
+FRONTEND_DIST = Path(__file__).resolve().parent / "frontend" / "dist"
 
 @app.get("/", response_class=HTMLResponse)
 async def farmer_profile_page():
+    frontend_index = FRONTEND_DIST / "index.html"
+    if frontend_index.is_file():
+        return FileResponse(frontend_index)
     with open("farmer_profile.html", "r", encoding="utf-8") as profile_page:
         return profile_page.read()
 
@@ -245,6 +252,28 @@ def _store_recommendation(recommendation: Recommendation, farmer_input: FarmerIn
             }
         )
         conn.commit()
+
+if (FRONTEND_DIST / "assets").is_dir():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(FRONTEND_DIST / "assets")),
+        name="agroai-frontend-assets",
+    )
+if (FRONTEND_DIST / "images").is_dir():
+    app.mount(
+        "/images",
+        StaticFiles(directory=str(FRONTEND_DIST / "images")),
+        name="agroai-frontend-images",
+    )
+
+@app.get("/{frontend_path:path}", include_in_schema=False)
+async def react_frontend_routes(frontend_path: str):
+    if frontend_path == "api" or frontend_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    frontend_index = FRONTEND_DIST / "index.html"
+    if frontend_index.is_file():
+        return FileResponse(frontend_index)
+    raise HTTPException(status_code=404, detail="Not Found")
 
 if __name__ == "__main__":
     import uvicorn
