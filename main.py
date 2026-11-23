@@ -2,13 +2,83 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine, text
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import os
 from datetime import datetime
+from src.api.routes import router as api_router
 
 # Initialize FastAPI app
 app = FastAPI(title="Sustainable Farming AI System")
+app.include_router(api_router, prefix="/api")
+
+@app.get("/", response_class=HTMLResponse)
+async def farmer_profile_page():
+    with open("farmer_profile.html", "r", encoding="utf-8") as profile_page:
+        return profile_page.read()
+
+@app.get("/recommendations/{farmer_id}", response_class=HTMLResponse)
+async def recommendations_page(farmer_id: int):
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Farming Recommendations</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 24px; background: #f2f7f2; color: #243424; }}
+            h1 {{ color: #27682f; }} .card {{ background: white; border-radius: 10px; padding: 18px; margin: 14px 0; box-shadow: 0 2px 8px #d9e2d9; }}
+            .score {{ display: inline-block; margin-right: 18px; font-weight: bold; }} .error {{ color: #a12626; }}
+            button {{ background: #27682f; color: white; border: 0; border-radius: 6px; padding: 10px 16px; cursor: pointer; }}
+            .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }}
+        </style>
+    </head>
+    <body>
+        <button onclick="location.href='/'">Back to farmer profile</button>
+        <h1>Personalized Farming Recommendations</h1>
+        <div id="content">Loading recommendations...</div>
+        <script>
+            const farmerId = {farmer_id};
+            const crops = new URLSearchParams(window.location.search).get('crops') || '';
+            fetch(`/api/recommendations/${{farmerId}}${{crops ? '?crops=' + encodeURIComponent(crops) : ''}}`)
+              .then(async response => {{
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Recommendations could not be generated');
+                return data;
+              }})
+              .then(data => {{
+                const content = document.getElementById('content');
+                const list = data.recommendations || [];
+                if (!list.length) {{
+                  content.innerHTML = '<div class=\"card\">No recommendations were generated. Please add preferred crops and try again.</div>';
+                  return;
+                }}
+                content.innerHTML = '<div class=\"card\"><b>Farmer:</b> #' + data.farmer_id + '<br><b>Generated:</b> ' + data.timestamp + '</div>' +
+                  list.map(item => {{
+                    const market = item.market_analysis || {{}};
+                    const trend = market.market_trend || {{}};
+                    const profitability = market.profitability || {{}};
+                    const metrics = item.sustainability_metrics || {{}};
+                    return '<article class=\"card\"><h2>' + item.crop + '</h2>' +
+                      '<div><span class=\"score\">Overall: ' + (item.overall_score * 100).toFixed(1) + '%</span>' +
+                      '<span class=\"score\">Sustainability: ' + (item.sustainability_score * 100).toFixed(1) + '%</span></div>' +
+                      '<p><b>Water requirement:</b> ' + Math.round(item.water_requirement).toLocaleString() + ' cubic metres</p>' +
+                      '<p><b>Estimated cost:</b> Rs. ' + Math.round(item.estimated_cost).toLocaleString() + '</p>' +
+                      '<p><b>Soil compatibility:</b> ' + (item.soil_compatibility * 100).toFixed(1) + '%</p>' +
+                      '<p><b>Market demand:</b> ' + (trend.demand_level || 'N/A') + ' &nbsp; <b>Price trend:</b> ' + (trend.price_trend || 'N/A') + '</p>' +
+                      '<p><b>Expected yield:</b> ' + (profitability.estimated_yield || 0).toFixed(1) + ' tons</p>' +
+                      '<p><b>Potential revenue:</b> Rs. ' + Math.round(profitability.potential_revenue || 0).toLocaleString() + '</p>' +
+                      '<p><b>Water efficiency:</b> ' + ((metrics.water_efficiency || 0) * 100).toFixed(1) + '% &nbsp; <b>Soil health:</b> ' + ((metrics.soil_health || 0) * 100).toFixed(1) + '%</p>' +
+                      '</article>';
+                  }}).join('');
+              }})
+              .catch(error => {{
+                document.getElementById('content').innerHTML = '<div class=\"card error\">' + error.message + '</div>';
+              }});
+        </script>
+    </body>
+    </html>
+    """
 
 # Database setup
 DATABASE_URL = "sqlite:///farming.db"

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 import pandas as pd
+import os
 
 from ..database.database import get_db
 from ..database.models import Farmer, Crop, Recommendation, MarketData
@@ -13,8 +14,9 @@ router = APIRouter()
 
 # Load data (this would be replaced with actual data loading)
 try:
-    farmer_data = pd.read_csv('data/farmer_advisor_dataset.csv')
-    market_data = pd.read_csv('data/market_researcher_dataset.csv')
+    data_dir = 'data' if os.path.exists('data/farmer_advisor_dataset.csv') else '.'
+    farmer_data = pd.read_csv(f'{data_dir}/farmer_advisor_dataset.csv')
+    market_data = pd.read_csv(f'{data_dir}/market_researcher_dataset.csv')
 except FileNotFoundError:
     print("Warning: Dataset files not found. Using mock data.")
     farmer_data = pd.DataFrame()
@@ -45,6 +47,7 @@ async def create_farmer(
 @router.get("/recommendations/{farmer_id}")
 async def get_recommendations(
     farmer_id: int,
+    crops: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Get farming recommendations for a specific farmer."""
@@ -59,7 +62,10 @@ async def get_recommendations(
         farm_size=farmer.farm_size,
         soil_type=farmer.soil_type,
         water_availability=farmer.water_availability,
-        preferred_crops=None,
+        preferred_crops=(
+            [crop.strip() for crop in crops.split(',') if crop.strip()]
+            if crops else None
+        ),
         budget=10000  # This would come from the farmer's actual data
     )
     
@@ -76,7 +82,14 @@ async def get_recommendations(
     
     # Combine recommendations
     final_recommendations = []
-    for crop_rec, market_rec in zip(crop_recommendations, market_analysis):
+    market_by_crop = {
+        rec['crop'].lower(): rec
+        for rec in market_analysis
+    }
+    for crop_rec in crop_recommendations:
+        market_rec = market_by_crop.get(crop_rec['crop'].lower())
+        if market_rec is None:
+            continue
         combined_rec = {
             **crop_rec,
             'market_analysis': market_rec,

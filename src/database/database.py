@@ -1,8 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from contextlib import contextmanager
-
 DATABASE_URL = "sqlite:///farming.db"
 
 # Create database engine
@@ -14,7 +12,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create base class for models
 Base = declarative_base()
 
-@contextmanager
 def get_db():
     """Context manager for database sessions."""
     db = SessionLocal()

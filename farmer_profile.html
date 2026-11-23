@@ -133,6 +133,7 @@
                 preferred_crops: document.getElementById('preferred_crops').value.split(',').map(crop => crop.trim()).filter(crop => crop),
                 budget: parseFloat(document.getElementById('budget').value)
             };
+            const cropQuery = encodeURIComponent(formData.preferred_crops.join(','));
 
             try {
                 const response = await fetch('/api/farmers/', {
@@ -156,7 +157,7 @@
                     `;
                     // Redirect to recommendations after 2 seconds
                     setTimeout(() => {
-                        window.location.href = `/recommendations/${data.farmer_id}`;
+                        window.location.href = `/recommendations/${data.farmer_id}?crops=${cropQuery}`;
                     }, 2000);
                 } else {
                     throw new Error(data.detail || 'Failed to create profile');
