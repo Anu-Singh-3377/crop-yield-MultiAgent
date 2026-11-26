@@ -1,3 +1,9 @@
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+__pycache__/
+*.py[cod]
+data/disease/source/
+data/disease/processed/
+artifacts/crop_disease_model.pt
+artifacts/crop_disease_model.evaluation.json
